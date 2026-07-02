@@ -134,7 +134,7 @@
                 <div class="text-amber-500 font-bold tracking-wider text-sm uppercase mb-4"><i class="fas fa-database mr-2"></i>CMS Engine Core</div>
                 <p class="text-[10px] text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded bg-emerald-900/20 inline-block"><i class="fas fa-lock mr-1"></i>Token Authenticated</p>
             </div>
-            <button onclick="exitCMS()" class="text-xs text-slate-400 hover:text-white flex items-center bg-slate-800 p-2.5 rounded text-left transition"><i class="fas fa-arrow-left mr-2"></i>Exit CMS Mode</button>
+            <button onclick="exitCMS()" class="text-xs text-slate-400 hover:text-white flex items-center bg-slate-800 p-2.5 rounded text-left transition w-full"><i class="fas fa-arrow-left mr-2"></i>Exit CMS Mode</button>
         </aside>
 
         <main class="flex-1 overflow-y-auto p-10 space-y-8">
@@ -145,7 +145,7 @@
                         <p class="text-xs text-slate-500 mt-1">Directly edit primary headings, data matrices, and raw arrays.</p>
                     </div>
                     <button onclick="saveCMSData()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded shadow flex items-center transition">
-                        <i class="fas fa-save mr-2"></i>Commit Framework Changes
+                        <i class="fas fa-save mr-2"></i>Save Dynamic Sandbox Changes
                     </button>
                 </div>
 
@@ -203,13 +203,27 @@
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 max-w-4xl">
-                <h3 class="text-base font-bold text-slate-900 mb-4">Work History Nodes</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-bold text-slate-900">Work History Nodes</h3>
+                    <button onclick="appendBlankExperience()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition"><i class="fas fa-plus mr-1"></i> Add New Experience</button>
+                </div>
                 <div id="experience-editor-block" class="space-y-4"></div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 max-w-4xl">
-                <h3 class="text-base font-bold text-slate-900 mb-4">Educational Milestones Nodes</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-bold text-slate-900">Educational Milestones Nodes</h3>
+                    <button onclick="appendBlankEducation()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition"><i class="fas fa-plus mr-1"></i> Add New Education</button>
+                </div>
                 <div id="education-editor-block" class="space-y-4"></div>
+            </div>
+            
+            <!-- EXPORT ENGINE (How to make changes permanent) -->
+            <div class="bg-slate-900 text-white rounded-xl shadow-sm p-8 max-w-4xl">
+                <h3 class="text-base font-bold text-amber-500 mb-2"><i class="fas fa-cloud-upload-alt mr-2"></i>How to make updates 100% permanent on GitHub Pages</h3>
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">Changes made above save instantly inside your personal browser. To push updates out to global recruiters securely, follow the code export box layout below.</p>
+                <button onclick="compileCurrentStateHTML()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded transition mb-4">Generate Permanent Code Block</button>
+                <textarea id="export-code-output" rows="4" class="w-full bg-slate-950 font-mono text-[11px] text-emerald-400 border border-slate-800 rounded p-3 focus:outline-none" readonly placeholder="Click the button above to generate system code output..."></textarea>
             </div>
         </main>
     </div>
@@ -252,7 +266,6 @@
             if (stored) {
                 try {
                     runtimeDB = JSON.parse(stored);
-                    // Force upgrade if old dataset structure doesn't match the new required keys
                     if (!runtimeDB.profile || !runtimeDB.profile.phone || !runtimeDB.profile.email) {
                         runtimeDB = initialSeedData;
                         localStorage.setItem('banking_portfolio_db', JSON.stringify(initialSeedData));
@@ -336,7 +349,10 @@
             document.getElementById('portfolio-view').classList.add('hidden');
             document.getElementById('cms-view').classList.remove('hidden');
             document.getElementById('main-body').className = "bg-slate-100 text-slate-800 font-sans";
+            syncCMSForms();
+        }
 
+        function syncCMSForms() {
             document.getElementById('form-name').value = runtimeDB.profile.name;
             document.getElementById('form-title').value = runtimeDB.profile.title;
             document.getElementById('form-about').value = runtimeDB.profile.about;
@@ -348,8 +364,14 @@
             document.getElementById('form-skills').value = runtimeDB.skills.join(', ');
             document.getElementById('form-certs').value = runtimeDB.certs.join('\n');
 
+            renderWorkspaceExperienceNodes();
+            renderWorkspaceEducationNodes();
+        }
+
+        function renderWorkspaceExperienceNodes() {
             document.getElementById('experience-editor-block').innerHTML = runtimeDB.experience.map((e, idx) => `
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-2 gap-3">
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-2 gap-3 relative">
+                    <button onclick="removeNode('experience', ${idx})" class="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs"><i class="fas fa-trash"></i></button>
                     <input type="text" value="${e.role}" placeholder="Role Title" onchange="mutateNode('experience', ${idx}, 'role', this.value)" class="p-2 border rounded text-xs bg-white">
                     <input type="text" value="${e.firm}" placeholder="Financial Corporation" onchange="mutateNode('experience', ${idx}, 'firm', this.value)" class="p-2 border rounded text-xs bg-white">
                     <input type="text" value="${e.duration}" placeholder="Duration Bounds" onchange="mutateNode('experience', ${idx}, 'duration', this.value)" class="p-2 border rounded text-xs bg-white">
@@ -357,14 +379,36 @@
                     <textarea placeholder="Job Breakdown Description" onchange="mutateNode('experience', ${idx}, 'desc', this.value)" class="col-span-2 p-2 border rounded text-xs bg-white" rows="2">${e.desc}</textarea>
                 </div>
             `).join('');
+        }
 
+        function renderWorkspaceEducationNodes() {
             document.getElementById('education-editor-block').innerHTML = runtimeDB.education.map((edu, idx) => `
-                <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-3 gap-3">
+                <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg grid grid-cols-3 gap-3 relative">
+                    <button onclick="removeNode('education', ${idx})" class="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs"><i class="fas fa-trash"></i></button>
                     <input type="text" value="${edu.degree}" placeholder="Degree Field" onchange="mutateNode('education', ${idx}, 'degree', this.value)" class="p-2 border rounded text-xs bg-white">
                     <input type="text" value="${edu.institution}" placeholder="University Location" onchange="mutateNode('education', ${idx}, 'institution', this.value)" class="p-2 border rounded text-xs bg-white">
                     <input type="text" value="${edu.year}" placeholder="Years Attended" onchange="mutateNode('education', ${idx}, 'year', this.value)" class="p-2 border rounded text-xs bg-white">
+                    <input type="text" value="${edu.logo || ''}" placeholder="Logo File Name" onchange="mutateNode('education', ${idx}, 'logo', this.value)" class="col-span-3 p-2 border rounded text-xs bg-white">
                 </div>
             `).join('');
+        }
+
+        function appendBlankExperience() {
+            runtimeDB.experience.unshift({ role: "New Executive Role", firm: "Bank Name", duration: "2026 - Present", desc: "Describe parameters and operational achievements here.", logo: "bob-logo.png" });
+            renderWorkspaceExperienceNodes();
+        }
+
+        function appendBlankEducation() {
+            runtimeDB.education.push({ degree: "Degree Title", institution: "University Name", year: "2026", logo: "pune-logo.png" });
+            renderWorkspaceEducationNodes();
+        }
+
+        function removeNode(arrayKey, idx) {
+            if(confirm("Confirm deletion of this dataset node item?")) {
+                runtimeDB[arrayKey].splice(idx, 1);
+                if(arrayKey === 'experience') renderWorkspaceExperienceNodes();
+                if(arrayKey === 'education') renderWorkspaceEducationNodes();
+            }
         }
 
         function mutateNode(arrayKey, idx, propKey, val) {
@@ -385,8 +429,22 @@
             runtimeDB.certs = document.getElementById('form-certs').value.split('\n').map(c => c.trim()).filter(c => c !== '');
 
             localStorage.setItem('banking_portfolio_db', JSON.stringify(runtimeDB));
-            alert("Database Synced Safely.");
+            alert("Sandbox Updated Locally.");
             exitCMS();
+        }
+
+        function compileCurrentStateHTML() {
+            saveCMSData();
+            
+            const rawDocString = document.documentElement.outerHTML;
+            const seedRegex = /const initialSeedData = \s*\{[\s\S]*?\};/;
+            const refinedCode = rawDocString.replace(seedRegex, `const initialSeedData = ${JSON.stringify(runtimeDB, null, 4)};`);
+            
+            const cleanOutput = "<!DOCTYPE html>\n" + refinedCode.replace(/&quot;/g, '"');
+            
+            document.getElementById('export-code-output').value = cleanOutput;
+            document.getElementById('export-code-output').select();
+            alert("Code compiled! Follow the 3 steps below to lock this data permanently onto GitHub.");
         }
 
         function exitCMS() {
